@@ -30,7 +30,7 @@ void openGate(){
 //Set motors to make robot go straight ahead
 void forward() {
 	set_motors(leftMotor, 33); //Left Motor
-	set_motors(1, 63); //Right Motor
+	set_motors(rightMotor, 63); //Right Motor
 	hardware_exchange();
 }
 
