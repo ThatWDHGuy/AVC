@@ -29,8 +29,8 @@ void openGate(){
 
 //Set motors to make robot go straight ahead
 void forward() {
-	set_motors(leftMotor, 33); //Left Motor
-	set_motors(rightMotor, 63); //Right Motor
+	set_motors(leftMotor, 33);
+	set_motors(rightMotor, 63); 
 	hardware_exchange();
 }
 
@@ -38,6 +38,28 @@ void forward() {
 void reverse() {
 	set_motors(leftMotor, 63);
 	set_motors(rightMotor, 33);
+	hardware_exchange();
+}
+
+// Make a 90 degree hard left turn
+void hardLeft() {
+	set_motors(leftMotor, 35); 
+	set_motors(rightMotor, 35); 
+	hardware_exchange();
+	sleep(1);
+	set_motors(leftMotor, 48); 
+	set_motors(rightMotor, 48); 
+	hardware_exchange();
+}
+
+// Make a 90 degree hard right turn
+void hardRight() {
+	set_motors(leftMotor, 61);
+	set_motors(rightMotor, 61);
+	hardware_exchange();
+	sleep(1);
+	set_motors(leftMotor, 48); 
+	set_motors(rightMotor, 48); 
 	hardware_exchange();
 }
 
@@ -65,33 +87,20 @@ void right(int blackTotal) {
 	hardware_exchange();
 }
 
-// Make a 90 degree hard left turn
-void hardLeft() {
-	set_motors(leftMotor, 35); //Left Motor
-	set_motors(rightMotor, 35); //Right Motor
-	hardware_exchange();
-}
-
-// Make a 90 degree hard right turn
-void hardRight() {
-	set_motors(leftMotor, 61);
-	set_motors(rightMotor, 61);
-	hardware_exchange();
-}
-
 //Follow a black line
-void followLine(){
+void followLine1(){
 	//const char* turns[] = {"r", "r", "l", "l", "r", "l", "r"};
 	int camWidth = 320;
 	int camHeight = 240;
 	int leftBlack = 0;
 	int middleBlack = 0;
 	int rightBlack = 0;
-	double sideSector = 1/3; // Size of left and right sections that camera is split into
+	double sideSector = 1/4; // Size of left and right sections that camera is split into
 	//const int LINE_WIDTH = 100; // Unsure of real line width
-	int lineWidth = 0;
+	int lineWidth = 0; // WIP
 
 	take_picture();
+	//update_screen(); TESTING
 
 	for (int y=0; y<camHeight; y++) {
 			lineWidth = 0;
@@ -125,10 +134,76 @@ void followLine(){
 	}
 }
 
+
+void setLeft(int speed) {
+	set_motors(leftMotor, 48-((int)speed/2));
+	set_motors(rightMotor, 48+speed);
+	hardware_exchange();
+}
+
+void setRight(int speed) {
+	set_motors(leftMotor, 48-speed);
+	set_motors(rightMotor, 48+((int)speed/2));
+	hardware_exchange();
+}
+
+//Alternate follow line method, using single line idea
+void followLine2() {
+	int camWidth = 320;
+	int camHeight = 240;
+	int total = 0;
+	int speed = 0;
+	int blackCountMid = 0;
+	int blackCountTop = 0;
+	const int turns[] = {0, 0, 1, 1, 0, 1, 0}; // 0 = right, 1 = left
+	int turnsTaken = 0;
+	
+	take_picture();
+	//update_screen(); TESTING
+	
+	for (int x=0; x<camWidth; x++) {
+		if ((int)get_pixel(((int)camHeight/2), x, 3) < 100) {
+			total += x-camWidth/2;
+			blackCountMid ++;
+		}
+		if ((int)get_pixel(((int)camHeight/5), x, 3) < 100 && quadrant == 2) {
+			blackCountTop ++;
+		}
+	}
+	
+	if (blackCountTop < 10 && blackCountMid > 40) {
+		quadrant = 3;
+	}
+	if (quadrant == 3) {
+		if (blackCountMid > ((int)(camWidth/2.5))) {
+			if (turns[turnsTaken] == 1) {
+				hardLeft();
+			}
+			if (turns[turnsTaken] == 0) {
+				hardRight();
+			}
+		} else {
+			forward();
+		}
+	} else {
+		speed = (int)(total*18/camWidth);	
+		if (abs(speed) > 4) {
+			if (speed < 0) {
+				setLeft(abs(speed));
+			}
+			if (speed > 0) {
+				setRight(speed);
+			}
+		} else { 
+			forward();
+		}
+	}
+}
+
 //Get everything going
 int main() {
 	init(0);
-	//open_screen_stream();
+	//open_screen_stream(); TESTING
 	while (true) {
 		
 			/*
@@ -142,16 +217,18 @@ int main() {
 			}
 			*/
 			
-			followLine();
+			followLine2();
 			
-			/* Test motors
+			/* TESTING
 			set_motors(1,56);
 			set_motors(5,40);
 			hardware_exchange();
 			sleep(5);
 			set_motors(1,48);
 			set_motors(5,48);
-			hardware_exchange();*/
+			hardware_exchange();
+			*/
 	}
-	//close_screen_stream();
+	//close_screen_stream(); TESTING
+	return 0;
 }
