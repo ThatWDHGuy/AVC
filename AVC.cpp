@@ -63,100 +63,30 @@ void hardRight() {
 	hardware_exchange();
 }
 
-//Set motors to make robot go left
-void left(int blackTotal) {
-	int speed;
-	if (blackTotal > 5000) speed = 10;
-	else if (blackTotal > 2000) speed = 7.5;
-	else speed = 5;
-
-	set_motors(leftMotor, 48-speed);
-	set_motors(rightMotor, 48+speed*1.5);
-	hardware_exchange();
-}
-
-//Set motors to make robot go right
-void right(int blackTotal) {
-	int speed;
-	if (blackTotal > 5000) speed = 10;
-	else if (blackTotal > 2000) speed = 7.5;
-	else speed = 5;
-
-	set_motors(leftMotor, 48-speed*1.5);
-	set_motors(rightMotor, 48+speed);
-	hardware_exchange();
-}
-
-//Follow a black line
-void followLine1(){
-	//const char* turns[] = {"r", "r", "l", "l", "r", "l", "r"};
-	int camWidth = 320;
-	int camHeight = 240;
-	int leftBlack = 0;
-	int middleBlack = 0;
-	int rightBlack = 0;
-	double sideSector = 1/4; // Size of left and right sections that camera is split into
-	//const int LINE_WIDTH = 100; // Unsure of real line width
-	int lineWidth = 0; // WIP
-
-	take_picture();
-	//update_screen(); TESTING
-
-	for (int y=0; y<camHeight; y++) {
-			lineWidth = 0;
-			for (int x=0; x<camWidth; x++) {
-
-					if ((int)get_pixel(y, x, 3) < 100) {
-							if (x < camWidth*sideSector) { //Test if pixel on left
-									leftBlack++;
-							} else if (x > camWidth*sideSector && x < camWidth*(1-sideSector)){ //Test is pixel in middle
-									middleBlack++;
-							} else if (x > camWidth*(1-sideSector)) { //Test if pixel on right
-									rightBlack++;
-							}
-							lineWidth++;
-					}
-					
-			}
-	}
-
-	int blackThreshold = 500;
-	if (leftBlack > blackThreshold && rightBlack > blackThreshold && quadrant == 3) { //T-Intersection
-			//Quad 3 stuff
-	} else if (leftBlack > blackThreshold) { //If enough black on left, turn left
-			left(leftBlack);
-	} else if (rightBlack > blackThreshold) { //If enough black on right, turn right
-			right(rightBlack);
-	} else if(middleBlack < blackThreshold) { //If little to no black in middle sector, reverse back to re-find line
-			reverse();
-	}  else { //Go forward otherwise
-			forward();
-	}
-}
-
-
-void setLeft(int speed) {
+void left(int speed) {
 	set_motors(leftMotor, 48-((int)speed/2));
 	set_motors(rightMotor, 48+speed);
 	hardware_exchange();
 }
 
-void setRight(int speed) {
+void right(int speed) {
 	set_motors(leftMotor, 48-speed);
 	set_motors(rightMotor, 48+((int)speed/2));
 	hardware_exchange();
 }
 
+const int camWidth = 320;
+const int camHeight = 240;
+const int turns[] = {0, 0, 1, 1, 0, 1, 0}; // 0 = right, 1 = left
+int turnsTaken = 0;
+
 //Alternate follow line method, using single line idea
-void followLine2() {
-	int camWidth = 320;
-	int camHeight = 240;
+void followLine() {
 	int total = 0;
 	int speed = 0;
 	int blackCountMid = 0;
 	int blackCountTop = 0;
-	const int turns[] = {0, 0, 1, 1, 0, 1, 0}; // 0 = right, 1 = left
-	int turnsTaken = 0;
+	int redCount = 0;
 	
 	take_picture();
 	//update_screen(); TESTING
@@ -169,10 +99,16 @@ void followLine2() {
 		if ((int)get_pixel(((int)camHeight/5), x, 3) < 100 && quadrant == 2) {
 			blackCountTop ++;
 		}
+		if (((int)get_pixel(((int)camHeight/2), x, 0))-80 > ((int)get_pixel(((int)camHeight/2), x, 1)) && ((int)get_pixel(((int)camHeight/2), x, 0))-80 > ((int)get_pixel(((int)camHeight/2), x, 2))) {
+			redCount++;
+		}
 	}
 	
-	if (blackCountTop < 10 && blackCountMid > 40) {
+	if (blackCountTop < 10 && blackCountMid > 40 && quadrant == 2) {
 		quadrant = 3;
+	}
+	if (redCount > 5) {
+		quadrant = 4;
 	}
 	if (quadrant == 3) {
 		if (blackCountMid > ((int)(camWidth/2.5))) {
@@ -182,6 +118,7 @@ void followLine2() {
 			if (turns[turnsTaken] == 0) {
 				hardRight();
 			}
+			turnsTaken++;
 		} else {
 			forward();
 		}
@@ -189,10 +126,10 @@ void followLine2() {
 		speed = (int)(total*18/camWidth);	
 		if (abs(speed) > 4) {
 			if (speed < 0) {
-				setLeft(abs(speed));
+				left(abs(speed));
 			}
 			if (speed > 0) {
-				setRight(speed);
+				right(speed);
 			}
 		} else { 
 			forward();
@@ -217,7 +154,7 @@ int main() {
 			}
 			*/
 			
-			followLine2();
+			followLine();
 			
 			/* TESTING
 			set_motors(1,56);
