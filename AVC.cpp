@@ -86,8 +86,9 @@ const int camWidth = 320;
 const int camHeight = 240;
 const int turns[] = {0, 0, 1, 1, 0, 1, 0}; // 0 = right, 1 = left
 int turnsTaken = 0;
+int nextQuad = 0;
 
-void followLine() { //Q2
+void followLineQ2() { //Q2
         int linePos = 0;
         take_picture();
         //update_screen(); TESTING
@@ -100,6 +101,11 @@ void followLine() { //Q2
                                 linePos++;
                         }
                 }
+                if ((int)get_pixel(((int)camHeight/2), x, 0) > 100 &&
+		    (int)get_pixel(((int)camHeight/2), x, 1) < 100 &&
+		    (int)get_pixel(((int)camHeight/2), x, 2) < 100){ //check if red pixel change 150 to valued discovered (do testing)
+                        nextQuad++;
+                }
         }
         cout<<linePos<<endl;
         if (linePos == 0){
@@ -110,8 +116,41 @@ void followLine() { //Q2
                 turnLeft();
         }
 }
-void detectNextQ(){
-        //look for red
+
+void followLineQ3() { //Q3
+	int stillLine = 0;
+        int linePos = 0;
+        take_picture();
+        //update_screen(); TESTING
+
+        for (int x=0; x<camWidth; x++) {
+                if ((int)get_pixel(((int)camHeight/2), x, 3) < 100) {
+                        if (x < camWidth/2){
+                                linePos--;
+                        } else {
+                                linePos++;
+                        }	
+			stillLine++;
+                }
+		
+        }
+        cout<<linePos<<endl;
+	cout<<stillLine<<endl;
+	if (stillLine != 0){
+		if (linePos == 0){
+			setForward();
+	        } else if (linePos > 0) {
+	                turnRight();
+	        } else if (linePos < 0) {
+	                turnLeft();
+	        }
+	} else {
+		if (turns[turnsTaken] == 0){//make do Hard turns inturrupt and do a turn for 0.3ish secs
+			doHardTurnRight();
+		} else {
+			doHardTurnLeft(); //make do Hard turns inturrupt and do a turn for 0.3ish secs
+		}
+	}
 }
 
 //Get everything going
@@ -121,12 +160,18 @@ int main() {
         quadrant = 2;
         while (true) {
                         if (quadrant == 1) {
-                                        openGate();
-                                        quadrant = 2;
+                                openGate();
+                                quadrant++;
+                                cout<<"Quad 2 Time"<<endl;
                         } else if (quadrant == 2){
-                                followLine();
+                                followLineQ2();
+                                if (nextQuad == 1){
+                                        nextQuad = 0;
+                                        quadrant++;
+                                        cout<<"Quad 3 Time"<<endl;
+                                }
                         } else if (quadrant == 3) {
-
+				followLineQ3();
                         } else if (quadrant == 4) {
 
                         }
